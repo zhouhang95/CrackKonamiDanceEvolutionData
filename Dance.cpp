@@ -265,13 +265,14 @@ struct ReadDanceAnm : INode {
     std::vector<int> arc_type;
     std::vector<int> arc_unknown;
     std::vector<int> arc_addr;
+    int max_frame = 0;
     virtual void apply() override {
         if (arc_pos.empty()) {
             auto path = get_input2<std::string>("path");
             auto reader = BinaryReader(file_get_binary(path));
 
             reader.seek_from_begin(0x04);
-            auto max_frame = reader.read_LE<uint32_t>();
+            max_frame = reader.read_LE<uint32_t>();
 
             reader.seek_from_begin(0x20);
             auto bone_count = reader.read_LE<uint32_t>();
@@ -418,6 +419,7 @@ struct ReadDanceAnm : INode {
             frame = getGlobalState()->frameid;
         }
         auto anm = std::make_shared<PrimitiveObject>();
+        anm->userData().set2("max_frame", max_frame);
         auto bone_count = arc_pos.size();
         anm->verts.resize(bone_count);
         auto &rot = anm->verts.add_attr<vec4f>("rot");
@@ -594,8 +596,6 @@ ZENDEFNODE(ReadDanceCamera, {
 
 struct EvalDance : INode {
     virtual void apply() override {
-        auto prim = get_input<PrimitiveObject>("prim");
-        auto &nrm = prim->verts.add_attr<vec3f>("nrm");
         auto bones = get_input<PrimitiveObject>("bones");
         auto &parent = bones->verts.attr<int>("parent");
         auto anm = get_input<PrimitiveObject>("anm");
@@ -635,23 +635,15 @@ struct EvalDance : INode {
                 ms[i] = ms[parent[i]] * ms[i];
             }
         }
-        if (get_input2<bool>("eval")) {
-            for (auto i = 0; i < bones->size(); i++) {
-                auto p = bones->verts[i];
-                auto np = ms[i] * glm::vec4(p[0], p[1], p[2], 1);
-                bones->verts[i] = {np[0], np[1], np[2]};
-            }
-        }
-        auto lines = get_input2<int>("lines");
-        if (0 < lines && lines < bones->lines.size()) {
-            bones->lines.resize(lines);
-        }
-        auto &len = bones->verts.add_attr<float>("len");
-        for (auto i = 1; i < bones->verts.size(); i++) {
-            len[i] = zeno::length(bones->verts[i] - bones->verts[parent[i]]);
+        for (auto i = 0; i < bones->size(); i++) {
+            auto p = bones->verts[i];
+            auto np = ms[i] * glm::vec4(p[0], p[1], p[2], 1);
+            bones->verts[i] = {np[0], np[1], np[2]};
         }
 
         set_output("bones", std::move(bones));
+        auto prim = get_input<PrimitiveObject>("prim");
+        auto &nrm = prim->verts.add_attr<vec3f>("nrm");
         auto &bi = prim->verts.attr<vec4i>("bi");
         auto &bw = prim->verts.attr<vec4f>("bw");
         for (auto i = 0; i < prim->verts.size(); i++) {
@@ -678,12 +670,10 @@ ZENDEFNODE(EvalDance, {
         {"prim"},
         {"bones"},
         {"anm"},
-        {"int", "lines", "0"},
-        {"bool", "eval", "1"},
     },
     {
-        "bones",
         "prim",
+        "bones",
     },
     {},
     {"alembic"},

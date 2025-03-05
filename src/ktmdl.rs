@@ -204,8 +204,6 @@ pub fn ktmodel_to_pmx(content: Vec<u8>, bone_names: Vec<String>, save_path: &str
     let data = pmx_mdl.write();
     let write_path = save_path.to_string() + ".pmx";
     std::fs::write(write_path, data).unwrap();
-    let write_path = save_path.to_string() + ".hmx";
-    ktmodel.save(&write_path);
 }
 
 
@@ -232,46 +230,6 @@ struct KTModel {
     bone_pos: Vec<Vec3>,
     bone_parent: Vec<Option<usize>>,
     meshs: Vec<KTSubMesh>,
-}
-
-impl KTModel {
-    fn save(&self, path: &str) {
-        let mut verts = Vec::new();
-        let mut indexs = Vec::new();
-        let mut v_start: u32 = 0;
-        for m in &self.meshs {
-            for v in &m.verts {
-                verts.push(v.pos.x);
-                verts.push(v.pos.y);
-                verts.push(v.pos.z);
-                verts.push(v.norm.x);
-                verts.push(v.norm.y);
-                verts.push(v.norm.z);
-                verts.push(v.uv.x);
-                verts.push(v.uv.y);
-            }
-            for f in &m.face {
-                indexs.push(v_start + f[0]);
-                indexs.push(v_start + f[1]);
-                indexs.push(v_start + f[2]);
-            }
-            v_start += m.verts.len() as u32;
-        }
-        let vert_count: u32 = verts.len() as u32 / 8;
-        let index_count: u32 = indexs.len() as u32 / 3;
-        let mut contents: Vec<u8> = Vec::new();
-
-        let binding = [vert_count, index_count];
-        let header: &[u8] = bytemuck::cast_slice(&binding);
-        let vert_data: &[u8] = bytemuck::cast_slice(&verts);
-        let index_data: &[u8] = bytemuck::cast_slice(&indexs);
-
-        contents.extend_from_slice(header);
-        contents.extend_from_slice(vert_data);
-        contents.extend_from_slice(index_data);
-        std::fs::write(path, contents).unwrap();
-    }
-    
 }
 
 fn read_string_to_null<T>(reader: &mut T) -> String 

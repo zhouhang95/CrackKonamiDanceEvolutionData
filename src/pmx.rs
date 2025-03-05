@@ -56,6 +56,7 @@ pub enum BlendMode {
 }
 
 bitflags! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct DrawFlags: u8 {
         const NO_CULL         = 0b00000001;
         const GROUND_SHADOW   = 0b00000010;
@@ -92,10 +93,10 @@ impl Default for Mat {
         Self {
             name: "Mat".to_string(),
             name_en: "Mat".to_string(),
-            diffuse: vec4(0.4, 0.4, 0.4, 1.0),
-            specular: Vec3::splat(0.4),
+            diffuse: vec4(1.0, 1.0, 1.0, 1.0),
+            specular: Vec3::splat(0.0),
             specular_strength: 5.0, 
-            ambient: Vec3::splat(0.2),
+            ambient: Vec3::splat(1.0),
             draw_flag: DrawFlags::NO_CULL,
             edge_color: vec4(0.0, 0.0, 0.0, 1.0), 
             edge_scale: 1.0,
@@ -110,6 +111,7 @@ impl Default for Mat {
 }
 
 bitflags! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct BoneFlags: u16 {
         const INDEXED_TAIL_BONE    = 0b0000000000000001;
         const ROTATABLE            = 0b0000000000000010;
@@ -596,7 +598,7 @@ impl Pmx {
             Self::write_vec3f(file, m.specular);
             file.write_f32::<LE>(m.specular_strength).unwrap();
             Self::write_vec3f(file, m.ambient);
-            file.write_u8(m.draw_flag.bits).unwrap();
+            file.write_u8(m.draw_flag.bits()).unwrap();
             Self::write_vec4f(file, m.edge_color);
             file.write_f32::<LE>(m.edge_scale).unwrap();
             file.write_i32::<LE>(m.tex_index).unwrap();
@@ -643,11 +645,11 @@ impl Pmx {
             };
             file.write_i32::<LE>(b.layer).unwrap();
 
-            let mut bitflags = b.bone_flags.bits & BoneFlags::INDEXED_TAIL_BONE.bits;
-            bitflags |= BoneFlags::ROTATABLE.bits;
-            bitflags |= BoneFlags::TRANSLATABLE.bits;
-            bitflags |= BoneFlags::VISIBLE.bits;
-            bitflags |= BoneFlags::ENABLED.bits;
+            let mut bitflags = b.bone_flags.bits() & BoneFlags::INDEXED_TAIL_BONE.bits();
+            bitflags |= BoneFlags::ROTATABLE.bits();
+            bitflags |= BoneFlags::TRANSLATABLE.bits();
+            bitflags |= BoneFlags::VISIBLE.bits();
+            bitflags |= BoneFlags::ENABLED.bits();
 
             file.write_u16::<LE>(bitflags).unwrap();
             match b.bone_tail_pos {
