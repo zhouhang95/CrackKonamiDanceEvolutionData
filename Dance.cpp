@@ -129,8 +129,8 @@ struct ReadDanceMesh : INode {
                 auto f1 = reader.read_LE<uint16_t>() + vi;
                 auto f2 = reader.read_LE<uint16_t>() + vi;
                 prim->tris[fi] = vec3i(f0, f1, f2);
-                fi += 1;
                 faceset[fi] = i;
+                fi += 1;
             }
 
             for (auto j = 0; j < vert_count; j++) {
