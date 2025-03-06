@@ -103,7 +103,7 @@ struct ReadDanceMesh : INode {
         auto &nrm = prim->verts.add_attr<vec3f>("nrm");
         auto &bi = prim->verts.add_attr<vec4i>("bi");
         auto &bw = prim->verts.add_attr<vec4f>("bw");
-        auto &id = prim->verts.add_attr<int>("id");
+        auto &faceset = prim->tris.add_attr<int>("faceset");
 
         int vi = 0;
         int fi = 0;
@@ -130,13 +130,13 @@ struct ReadDanceMesh : INode {
                 auto f2 = reader.read_LE<uint16_t>() + vi;
                 prim->tris[fi] = vec3i(f0, f1, f2);
                 fi += 1;
+                faceset[fi] = i;
             }
 
             for (auto j = 0; j < vert_count; j++) {
                 auto vert_start = section_ptr + i * 64 + vert_offset + j * fvf_size;
                 reader.seek_from_begin(vert_start);
                 prim->verts[vi] = reader.read_LE<vec3f>();
-                id[vi] = i;
 
                 auto b0 = (int)reader.read_LE<uint8_t>();
                 auto b1 = (int)reader.read_LE<uint8_t>();
@@ -198,6 +198,11 @@ struct ReadDanceMesh : INode {
                 }
                 vi += 1;
             }
+        }
+
+        prim->userData().set2("faceset_count", int(section_count));
+        for (auto i = 0; i < section_count; i++) {
+            prim->userData().set2(zeno::format("faceset_{}", i), zeno::format("Mat_{}", i));
         }
 
         set_output("prim", std::move(prim));
